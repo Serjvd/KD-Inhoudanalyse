@@ -45,50 +45,53 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
     oud_blokken = extract_werkprocesblokken(oud_text)
     nieuw_blokken = extract_werkprocesblokken(nieuw_text)
 
+    # Maak een lijst van werkprocessen met naam en code (zonder duplicaten)
+    werkprocessen_oud = {blok["naam"]: blok["code"] for blok in oud_blokken.values()}
+    werkprocessen_nieuw = {blok["naam"]: blok["code"] for blok in nieuw_blokken.values()}
+
     resultaten = []
-    alle_codes = sorted(set(oud_blokken.keys()) | set(nieuw_blokken.keys()))
 
-    for code in alle_codes:
-        oud = oud_blokken.get(code, {})
-        nieuw = nieuw_blokken.get(code, {})
+    # Combineer alle werkprocessen op naam om zowel oude als nieuwe te vergelijken
+    for naam in set(werkprocessen_oud.keys()).union(werkprocessen_nieuw.keys()):
+        oud_code = werkprocessen_oud.get(naam, None)
+        nieuw_code = werkprocessen_nieuw.get(naam, None)
 
-        naam = nieuw.get("naam") or oud.get("naam") or ""
-        oud_tekst = oud.get("tekst", "").strip()
-        nieuw_tekst = nieuw.get("tekst", "").strip()
+        oud_tekst = oud_blokken.get(oud_code, {}).get("tekst", "").strip() if oud_code else ""
+        nieuw_tekst = nieuw_blokken.get(nieuw_code, {}).get("tekst", "").strip() if nieuw_code else ""
 
-        # Verplaatsing detecteren: zelfde naam, andere code
-        if oud.get("naam") == nieuw.get("naam") and oud != nieuw:
-            impact = "Verplaatst"
-            score = "Weinig impact"
-            analyse = f"Werkproces is verplaatst van code {code} naar nieuwe code"
-        elif oud_tekst == nieuw_tekst:
-            impact = "Geen"
-            score = "Geen impact"
-            analyse = "Tekst is identiek"
-        elif not oud_tekst:
+        if oud_code and nieuw_code:
+            if oud_code != nieuw_code:
+                impact = "Verplaatst"
+                score = "Weinig impact"
+                analyse = f"Werkproces is verplaatst van code {oud_code} naar nieuwe code {nieuw_code}"
+            elif oud_tekst == nieuw_tekst:
+                impact = "Geen"
+                score = "Geen impact"
+                analyse = "Tekst is identiek"
+            else:
+                scores = inhoudelijk_verschil(oud_tekst.splitlines(), nieuw_tekst.splitlines())
+                gemiddelde = sum(scores) / len(scores) if scores else 100
+                if gemiddelde > 90:
+                    score = "Geen impact"
+                elif gemiddelde > 75:
+                    score = "Weinig impact"
+                elif gemiddelde > 60:
+                    score = "Impact"
+                else:
+                    score = "Hoge impact"
+                impact = "Gewijzigd"
+                analyse = f"Inhoudelijke wijziging gedetecteerd (gemiddelde gelijkenis: {gemiddelde:.0f}%)"
+        elif not oud_code:
             impact = "Toegevoegd"
             score = "Impact"
             analyse = "Nieuw werkproces in het nieuwe dossier"
-        elif not nieuw_tekst:
+        elif not nieuw_code:
             impact = "Verwijderd"
             score = "Impact"
             analyse = "Werkproces is verwijderd in het nieuwe dossier"
-        else:
-            scores = inhoudelijk_verschil(oud_tekst.splitlines(), nieuw_tekst.splitlines())
-            gemiddelde = sum(scores) / len(scores) if scores else 100
-            if gemiddelde > 90:
-                score = "Geen impact"
-            elif gemiddelde > 75:
-                score = "Weinig impact"
-            elif gemiddelde > 60:
-                score = "Impact"
-            else:
-                score = "Hoge impact"
-            impact = "Gewijzigd"
-            analyse = f"Inhoudelijke wijziging gedetecteerd (gemiddelde gelijkenis: {gemiddelde:.0f}%)"
 
         resultaten.append({
-            "Code": code,
+            "Code": oud_code or nieuw_code,
             "Naam": naam,
             "Oude tekst": oud_tekst,
             "Nieuwe tekst": nieuw_tekst,
@@ -98,3 +101,4 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
         })
 
     return pd.DataFrame(resultaten)
+
