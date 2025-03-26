@@ -5,10 +5,12 @@ from fuzzywuzzy import fuzz
 from typing import List, Tuple
 
 def extract_full_text(pdf_path: str) -> str:
+    """Extraheert alle tekst uit het PDF-bestand."""
     with pdfplumber.open(pdf_path) as pdf:
         return "\n".join([page.extract_text() or "" for page in pdf.pages])
 
 def extract_werkprocesblokken(text: str) -> dict:
+    """Extraheert werkprocesblokken uit het tekstbestand."""
     pattern = r"(B\d+-K\d+-W\d+):\s+([^\n]+)"
     blokken = {}
     matches = list(re.finditer(pattern, text))
@@ -25,6 +27,7 @@ def extract_werkprocesblokken(text: str) -> dict:
     return blokken
 
 def inhoudelijk_verschil(oud: List[str], nieuw: List[str], drempel: int = 85) -> List[int]:
+    """Vergelijkt de inhoud van twee lijsten tekstregels met fuzzy matching."""
     scores = []
     for nieuw_zin in nieuw:
         hoogste = 0
@@ -35,6 +38,7 @@ def inhoudelijk_verschil(oud: List[str], nieuw: List[str], drempel: int = 85) ->
     return scores
 
 def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
+    """Vergelijkt werkprocessen tussen een oud en nieuw kwalificatiedossier en genereert een DataFrame."""
     oud_text = extract_full_text(oud_pdf)
     nieuw_text = extract_full_text(nieuw_pdf)
 
@@ -52,7 +56,17 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
         oud_tekst = oud.get("tekst", "").strip()
         nieuw_tekst = nieuw.get("tekst", "").strip()
 
-        if not oud_tekst:
+        # Verplaatsen logica: zelfde naam maar andere code
+        if oud_tekst == nieuw_tekst:
+            if oud.get("naam") == nieuw.get("naam") and oud != nieuw:
+                impact = "Verplaatst"
+                score = "Weinig impact"
+                analyse = f"Werkproces is verplaatst van {code} naar nieuwe code"
+            else:
+                impact = "Geen"
+                score = "Geen impact"
+                analyse = "Tekst is identiek"
+        elif not oud_tekst:
             impact = "Toegevoegd"
             score = "Impact"
             analyse = "Nieuw werkproces in het nieuwe dossier"
@@ -60,14 +74,8 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
             impact = "Verwijderd"
             score = "Impact"
             analyse = "Werkproces is verwijderd in het nieuwe dossier"
-        elif oud_tekst == nieuw_tekst:
-            impact = "Geen"
-            score = "Geen impact"
-            analyse = "Tekst is identiek"
         else:
-            oud_zinnen = [r.strip() for r in oud_tekst.splitlines() if r.strip()]
-            nieuw_zinnen = [r.strip() for r in nieuw_tekst.splitlines() if r.strip()]
-            scores = inhoudelijk_verschil(oud_zinnen, nieuw_zinnen)
+            scores = inhoudelijk_verschil(oud_tekst.splitlines(), nieuw_tekst.splitlines())
             gemiddelde = sum(scores) / len(scores) if scores else 100
             if gemiddelde > 90:
                 score = "Geen impact"
