@@ -45,9 +45,9 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
     oud_blokken = extract_werkprocesblokken(oud_text)
     nieuw_blokken = extract_werkprocesblokken(nieuw_text)
 
-    # Maak een lijst van werkprocessen met naam en code (zonder duplicaten)
-    werkprocessen_oud = {blok["naam"]: blok["code"] for blok in oud_blokken.values()}
-    werkprocessen_nieuw = {blok["naam"]: blok["code"] for blok in nieuw_blokken.values()}
+    # Zorg ervoor dat de code altijd correct wordt opgehaald
+    werkprocessen_oud = {blok["naam"]: blok["code"] for blok in oud_blokken.values() if "naam" in blok and "code" in blok}
+    werkprocessen_nieuw = {blok["naam"]: blok["code"] for blok in nieuw_blokken.values() if "naam" in blok and "code" in blok}
 
     resultaten = []
 
@@ -56,10 +56,15 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
         oud_code = werkprocessen_oud.get(naam, None)
         nieuw_code = werkprocessen_nieuw.get(naam, None)
 
-        oud_tekst = oud_blokken.get(oud_code, {}).get("tekst", "").strip() if oud_code else ""
-        nieuw_tekst = nieuw_blokken.get(nieuw_code, {}).get("tekst", "").strip() if nieuw_code else ""
+        # Extra controle of werkprocessen daadwerkelijk een code hebben
+        if oud_code is None or nieuw_code is None:
+            impact = "Onbekend"
+            score = "Onbekend"
+            analyse = "Code ontbreekt in één van de dossiers"
+        else:
+            oud_tekst = oud_blokken.get(oud_code, {}).get("tekst", "").strip() if oud_code else ""
+            nieuw_tekst = nieuw_blokken.get(nieuw_code, {}).get("tekst", "").strip() if nieuw_code else ""
 
-        if oud_code and nieuw_code:
             if oud_code != nieuw_code:
                 impact = "Verplaatst"
                 score = "Weinig impact"
@@ -81,14 +86,6 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
                     score = "Hoge impact"
                 impact = "Gewijzigd"
                 analyse = f"Inhoudelijke wijziging gedetecteerd (gemiddelde gelijkenis: {gemiddelde:.0f}%)"
-        elif not oud_code:
-            impact = "Toegevoegd"
-            score = "Impact"
-            analyse = "Nieuw werkproces in het nieuwe dossier"
-        elif not nieuw_code:
-            impact = "Verwijderd"
-            score = "Impact"
-            analyse = "Werkproces is verwijderd in het nieuwe dossier"
 
         resultaten.append({
             "Code": oud_code or nieuw_code,
@@ -101,4 +98,3 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
         })
 
     return pd.DataFrame(resultaten)
-
