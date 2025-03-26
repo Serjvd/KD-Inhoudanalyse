@@ -87,6 +87,7 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
                 impact = "Gewijzigd"
                 analyse = f"Inhoudelijke wijziging gedetecteerd (gemiddelde gelijkenis: {gemiddelde:.0f}%)"
 
+        # Voeg de resultaten toe aan de lijst
         resultaten.append({
             "Code": oud_code or nieuw_code,
             "Naam": naam,
@@ -96,5 +97,8 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
             "Impactscore": score,
             "Analyse": analyse
         })
+
+    # Debugging: print de resultaten om te zien of ze correct worden gegenereerd
+    print(f"Resultaten: {resultaten}")
 
     return pd.DataFrame(resultaten)
