@@ -5,8 +5,8 @@ import os
 from inhoudsanalyse import vergelijk_werkprocessen
 
 def main():
-    st.set_page_config(page_title="Kwalificatiedossier Vergelijker", layout="wide")
-    st.title("📄 Vergelijk kwalificatiedossiers")
+    st.set_page_config(page_title="Kwalificatiedossier vergelijker op inhoud", layout="wide")
+    st.title("📄 Vergelijk inhoud van kwalificatiedossiers")
 
     st.markdown("""
         Upload hieronder een oud en een nieuw kwalificatiedossier in PDF-formaat.
