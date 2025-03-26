@@ -1,7 +1,7 @@
 import pdfplumber
 import re
 import pandas as pd
-from rapidfuzz import fuzz
+from fuzzywuzzy import fuzz
 from typing import List, Tuple
 
 def extract_full_text(pdf_path: str) -> str:
