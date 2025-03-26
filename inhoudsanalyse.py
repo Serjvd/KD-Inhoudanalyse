@@ -56,15 +56,11 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
         oud_tekst = oud.get("tekst", "").strip()
         nieuw_tekst = nieuw.get("tekst", "").strip()
 
-        # Verplaatsen logica: zelfde naam maar andere code
-        verplaatst = False
+        # Verplaatsing detecteren: zelfde naam, andere code
         if oud.get("naam") == nieuw.get("naam") and oud != nieuw:
-            verplaatst = True
-
-        if verplaatst:
             impact = "Verplaatst"
             score = "Weinig impact"
-            analyse = f"Werkproces is verplaatst van code {code} in oud dossier"
+            analyse = f"Werkproces is verplaatst van code {code} naar nieuwe code"
         elif oud_tekst == nieuw_tekst:
             impact = "Geen"
             score = "Geen impact"
@@ -102,4 +98,3 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
         })
 
     return pd.DataFrame(resultaten)
-
