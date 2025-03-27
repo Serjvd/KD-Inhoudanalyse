@@ -1,6 +1,7 @@
 import pdfplumber
 import re
 import pandas as pd
+import uuid
 from typing import List, Dict, Tuple
 from sentence_transformers import SentenceTransformer, util
 
@@ -61,12 +62,22 @@ def bepaal_impactscore(sim: float) -> Tuple[str, str]:
     else:
         return "Gewijzigd", "Hoge impact"
 
-def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
+def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> Tuple[pd.DataFrame, pd.DataFrame, str]:
     oud_text = extract_full_text(oud_pdf)
     nieuw_text = extract_full_text(nieuw_pdf)
 
+    if len(oud_text.strip()) < 1000:
+        raise ValueError("Oude dossier bevat onvoldoende leesbare tekst.")
+    if len(nieuw_text.strip()) < 1000:
+        raise ValueError("Nieuwe dossier bevat onvoldoende leesbare tekst.")
+
     oud_blokken = extract_werkprocesblokken(oud_text)
     nieuw_blokken = extract_werkprocesblokken(nieuw_text)
+
+    if not oud_blokken:
+        raise ValueError("Geen werkprocessen gevonden in het oude dossier.")
+    if not nieuw_blokken:
+        raise ValueError("Geen werkprocessen gevonden in het nieuwe dossier.")
 
     resultaten = []
     gebruikte_nieuwe = set()
@@ -77,6 +88,8 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
 
         for i, nieuw in enumerate(nieuw_blokken):
             if i in gebruikte_nieuwe:
+                continue
+            if not oud["tekst"].strip() or not nieuw["tekst"].strip():
                 continue
             score = vergelijk_inhoud(oud["tekst"], nieuw["tekst"])
             if score > hoogste_score:
@@ -130,7 +143,6 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
 
     df = pd.DataFrame(resultaten)
 
-    # Samenvatting per kerntaak
     samenvatting = (
         df.groupby(["Kerntaak", "Deel"])
         .agg(
@@ -148,11 +160,9 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
         .reset_index()
     )
 
-    # Schrijf naar Excel met 2 tabbladen
-    excel_path = "/tmp/vergelijking_resultaat.xlsx"
+    excel_path = f"/tmp/vergelijking_resultaat_{uuid.uuid4().hex}.xlsx"
     with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Werkprocessen")
         samenvatting.to_excel(writer, index=False, sheet_name="Samenvatting")
 
     return df, samenvatting, excel_path
-
