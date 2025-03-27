@@ -15,6 +15,7 @@ def main():
         - tekstverschillen
         - impactscore
         - inhoudelijke analyse
+        - samenvatting per kerntaak
     """)
 
     col1, col2 = st.columns(2)
@@ -36,16 +37,18 @@ def main():
                 nieuw_path = tmp2.name
             st.write("Nieuw bestand opgeslagen:", nieuw_path)
 
-            df = vergelijk_werkprocessen(oud_path, nieuw_path)
+            df, samenvatting, excel_path = vergelijk_werkprocessen(oud_path, nieuw_path)
             st.success("✅ Analyse voltooid")
+
+            st.subheader("📋 Gedetailleerde vergelijking per werkproces")
             st.dataframe(df)
 
-            excel_path = os.path.join(tempfile.gettempdir(), "vergelijking_resultaat.xlsx")
-            df.to_excel(excel_path, index=False)
+            st.subheader("🧾 Samenvatting per kerntaak")
+            st.dataframe(samenvatting)
 
             with open(excel_path, "rb") as f:
                 st.download_button(
-                    label="📥 Download Excelrapport",
+                    label="📥 Download Excelrapport (2 tabbladen)",
                     data=f,
                     file_name="vergelijking_resultaat.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
