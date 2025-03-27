@@ -9,44 +9,29 @@ from comparator import vergelijk_kds
 st.set_page_config(page_title="Kwalificatiedossier Analyse", layout="wide")
 st.title("📚 Kwalificatiedossier Analyse Tool")
 
-# Initialiseer session_state voor uploads
-for key in ["oud_pdf", "nieuw_pdf"]:
-    if key not in st.session_state:
-        st.session_state[key] = None
-
 # Tabs voor twee functies
 tabs = st.tabs(["🔍 Vergelijk op kerntaakniveau", "🧠 Inhoudelijke werkprocesanalyse"])
 
-# --- TAB 1: KDvergelijker2 --- #
+# --- Bestand uploaden (gedeeld voor beide tabs) ---
+col1, col2 = st.columns(2)
+with col1:
+    oud_pdf = st.file_uploader("⬅️ Oud dossier (PDF)", type="pdf", key="upload_oud")
+with col2:
+    nieuw_pdf = st.file_uploader("➡️ Nieuw dossier (PDF)", type="pdf", key="upload_nieuw")
+
+# --- TAB 1: KDvergelijking op kerntaakniveau --- #
 with tabs[0]:
     st.header("🔍 Globale vergelijking van twee kwalificatiedossiers (kerntaakniveau)")
     st.markdown("Vergelijkt teksten van volledige kerntaken (geen werkprocessen).")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        oud_pdf = st.file_uploader("⬅️ Oud dossier (PDF)", type="pdf", key="upload_oud")
-        if oud_pdf:
-            st.session_state["oud_pdf"] = oud_pdf
-    with col2:
-        nieuw_pdf = st.file_uploader("➡️ Nieuw dossier (PDF)", type="pdf", key="upload_nieuw")
-        if nieuw_pdf:
-            st.session_state["nieuw_pdf"] = nieuw_pdf
-
-    oud_pdf = st.session_state["oud_pdf"]
-    nieuw_pdf = st.session_state["nieuw_pdf"]
-
     if oud_pdf and nieuw_pdf:
         st.write("Bestanden geüpload, vergelijking start...")
         try:
-            oud_pdf.seek(0)
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp1:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp1, \
+                 tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp2:
                 tmp1.write(oud_pdf.read())
-                oud_path = tmp1.name
-
-            nieuw_pdf.seek(0)
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp2:
                 tmp2.write(nieuw_pdf.read())
-                nieuw_path = tmp2.name
+                oud_path, nieuw_path = tmp1.name, tmp2.name
 
             result_df, excel_path = vergelijk_kds(oud_path, nieuw_path)
             st.success("✅ Vergelijking voltooid")
@@ -59,29 +44,28 @@ with tabs[0]:
                     file_name="kd_kerntaak_vergelijking.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
-        except Exception as e:
-            st.error(f"Fout bij vergelijken: {e}")
+        except Exception:
+            st.error("Er is iets misgegaan bij het vergelijken. Controleer de bestanden.")
+        finally:
+            for path in [oud_path, nieuw_path]:
+                try:
+                    os.unlink(path)
+                except Exception:
+                    pass
 
-# --- TAB 2: Inhoudsanalyse (werkprocessen) --- #
+# --- TAB 2: Inhoudsanalyse op werkprocesniveau --- #
 with tabs[1]:
     st.header("🧠 Inhoudelijke vergelijking op werkprocesniveau")
     st.markdown("Vergelijkt werkprocessen inhoudelijk (semantisch, inclusief impactscore).")
 
-    oud_pdf = st.session_state["oud_pdf"]
-    nieuw_pdf = st.session_state["nieuw_pdf"]
-
     if oud_pdf and nieuw_pdf:
         st.write("Bestanden geüpload, werkproces-analyse start...")
         try:
-            oud_pdf.seek(0)
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp1:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp1, \
+                 tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp2:
                 tmp1.write(oud_pdf.read())
-                oud_path = tmp1.name
-
-            nieuw_pdf.seek(0)
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp2:
                 tmp2.write(nieuw_pdf.read())
-                nieuw_path = tmp2.name
+                oud_path, nieuw_path = tmp1.name, tmp2.name
 
             df, samenvatting, excel_path = vergelijk_werkprocessen(oud_path, nieuw_path)
             st.success("✅ Analyse voltooid")
@@ -99,7 +83,13 @@ with tabs[1]:
                     file_name="vergelijking_resultaat.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
-        except Exception as e:
-            st.error(f"Fout bij inhoudsanalyse: {e}")
+        except Exception:
+            st.error("Er is iets misgegaan bij de inhoudsanalyse. Controleer de bestanden.")
+        finally:
+            for path in [oud_path, nieuw_path]:
+                try:
+                    os.unlink(path)
+                except Exception:
+                    pass
     else:
-        st.info("📂 Upload eerst beide PDF-bestanden in de eerste tab om de analyse te starten.")
+        st.info("📂 Upload eerst beide PDF-bestanden hierboven om de analyse te starten.")
