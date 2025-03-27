@@ -154,4 +154,5 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
         df.to_excel(writer, index=False, sheet_name="Werkprocessen")
         samenvatting.to_excel(writer, index=False, sheet_name="Samenvatting")
 
-    return df
+    return df, samenvatting, excel_path
+
