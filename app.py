@@ -28,11 +28,18 @@ with tabs[0]:
         st.write("Bestanden geüpload, vergelijking start...")
 
         try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp1, \
-                 tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp2:
+            # Veilige tijdelijke opslag
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", mode="wb") as tmp1:
                 tmp1.write(oud_pdf.read())
+                tmp1.flush()
+                os.fsync(tmp1.fileno())
+                oud_path = tmp1.name
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", mode="wb") as tmp2:
                 tmp2.write(nieuw_pdf.read())
-                oud_path, nieuw_path = tmp1.name, tmp2.name
+                tmp2.flush()
+                os.fsync(tmp2.fileno())
+                nieuw_path = tmp2.name
 
             result_df, excel_path = vergelijk_kds(oud_path, nieuw_path)
             st.success("✅ Vergelijking voltooid")
@@ -49,9 +56,10 @@ with tabs[0]:
             st.error("Er is iets misgegaan bij de kerntaakanalyse.")
             st.code(traceback.format_exc(), language="python")
         finally:
-            for path in [oud_path, nieuw_path]:
+            for path in ["oud_path", "nieuw_path"]:
                 try:
-                    os.unlink(path)
+                    if path in locals():
+                        os.unlink(locals()[path])
                 except Exception:
                     pass
 
@@ -64,11 +72,18 @@ with tabs[1]:
         st.write("Bestanden geüpload, werkproces-analyse start...")
 
         try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp1, \
-                 tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp2:
+            # Veilige tijdelijke opslag
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", mode="wb") as tmp1:
                 tmp1.write(oud_pdf.read())
+                tmp1.flush()
+                os.fsync(tmp1.fileno())
+                oud_path = tmp1.name
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", mode="wb") as tmp2:
                 tmp2.write(nieuw_pdf.read())
-                oud_path, nieuw_path = tmp1.name, tmp2.name
+                tmp2.flush()
+                os.fsync(tmp2.fileno())
+                nieuw_path = tmp2.name
 
             df, samenvatting, excel_path = vergelijk_werkprocessen(oud_path, nieuw_path)
             st.success("✅ Analyse voltooid")
@@ -84,16 +99,4 @@ with tabs[1]:
                     label="📥 Download Excelrapport (2 tabbladen)",
                     data=f,
                     file_name="vergelijking_resultaat.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-        except Exception:
-            st.error("Er is iets misgegaan bij de inhoudsanalyse.")
-            st.code(traceback.format_exc(), language="python")
-        finally:
-            for path in [oud_path, nieuw_path]:
-                try:
-                    os.unlink(path)
-                except Exception:
-                    pass
-    else:
-        st.info("📂 Upload eerst beide PDF-bestanden hierboven om de analyse te starten.")
+                    mime
