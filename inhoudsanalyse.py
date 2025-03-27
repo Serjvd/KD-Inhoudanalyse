@@ -124,3 +124,4 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
         "Oude tekst", "Nieuwe tekst", "Impact", 
         "Impactscore", "Analyse"
     ]]
+ 
