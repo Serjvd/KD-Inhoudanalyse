@@ -1,7 +1,7 @@
 import pdfplumber
 import re
 import pandas as pd
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from sentence_transformers import SentenceTransformer, util
 
 model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
