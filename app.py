@@ -9,6 +9,11 @@ from comparator import vergelijk_kds
 st.set_page_config(page_title="Kwalificatiedossier Analyse", layout="wide")
 st.title("📚 Kwalificatiedossier Analyse Tool")
 
+# Initialiseer session_state voor uploads
+for key in ["oud_pdf", "nieuw_pdf"]:
+    if key not in st.session_state:
+        st.session_state[key] = None
+
 # Tabs voor twee functies
 tabs = st.tabs(["🔍 Vergelijk op kerntaakniveau", "🧠 Inhoudelijke werkprocesanalyse"])
 
@@ -19,9 +24,16 @@ with tabs[0]:
 
     col1, col2 = st.columns(2)
     with col1:
-        oud_pdf = st.file_uploader("⬅️ Oud dossier (PDF)", type="pdf", key="oud_kd")
+        oud_pdf = st.file_uploader("⬅️ Oud dossier (PDF)", type="pdf", key="upload_oud")
+        if oud_pdf:
+            st.session_state["oud_pdf"] = oud_pdf
     with col2:
-        nieuw_pdf = st.file_uploader("➡️ Nieuw dossier (PDF)", type="pdf", key="nieuw_kd")
+        nieuw_pdf = st.file_uploader("➡️ Nieuw dossier (PDF)", type="pdf", key="upload_nieuw")
+        if nieuw_pdf:
+            st.session_state["nieuw_pdf"] = nieuw_pdf
+
+    oud_pdf = st.session_state["oud_pdf"]
+    nieuw_pdf = st.session_state["nieuw_pdf"]
 
     if oud_pdf and nieuw_pdf:
         st.write("Bestanden geüpload, vergelijking start...")
@@ -53,21 +65,18 @@ with tabs[1]:
     st.header("🧠 Inhoudelijke vergelijking op werkprocesniveau")
     st.markdown("Vergelijkt werkprocessen inhoudelijk (semantisch, inclusief impactscore).")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        oud_pdf_wp = st.file_uploader("⬅️ Oud dossier (PDF)", type="pdf", key="oud_wp")
-    with col2:
-        nieuw_pdf_wp = st.file_uploader("➡️ Nieuw dossier (PDF)", type="pdf", key="nieuw_wp")
+    oud_pdf = st.session_state["oud_pdf"]
+    nieuw_pdf = st.session_state["nieuw_pdf"]
 
-    if oud_pdf_wp and nieuw_pdf_wp:
+    if oud_pdf and nieuw_pdf:
         st.write("Bestanden geüpload, werkproces-analyse start...")
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp1:
-                tmp1.write(oud_pdf_wp.read())
+                tmp1.write(oud_pdf.read())
                 oud_path = tmp1.name
 
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp2:
-                tmp2.write(nieuw_pdf_wp.read())
+                tmp2.write(nieuw_pdf.read())
                 nieuw_path = tmp2.name
 
             df, samenvatting, excel_path = vergelijk_werkprocessen(oud_path, nieuw_path)
@@ -88,3 +97,5 @@ with tabs[1]:
                 )
         except Exception as e:
             st.error(f"Fout bij inhoudsanalyse: {e}")
+    else:
+        st.info("📂 Upload eerst beide PDF-bestanden in de eerste tab om de analyse te starten.")
