@@ -2,30 +2,31 @@ import streamlit as st
 import tempfile
 import os
 import pandas as pd
-
+import traceback
 from inhoudsanalyse import vergelijk_werkprocessen
 from comparator import vergelijk_kds
 
 st.set_page_config(page_title="Kwalificatiedossier Analyse", layout="wide")
 st.title("📚 Kwalificatiedossier Analyse Tool")
 
-# Tabs voor twee functies
+# Tabs voor beide functies
 tabs = st.tabs(["🔍 Vergelijk op kerntaakniveau", "🧠 Inhoudelijke werkprocesanalyse"])
 
-# --- Bestand uploaden (gedeeld voor beide tabs) ---
+# --- Gedeelde uploadfunctionaliteit boven de tabs ---
 col1, col2 = st.columns(2)
 with col1:
     oud_pdf = st.file_uploader("⬅️ Oud dossier (PDF)", type="pdf", key="upload_oud")
 with col2:
     nieuw_pdf = st.file_uploader("➡️ Nieuw dossier (PDF)", type="pdf", key="upload_nieuw")
 
-# --- TAB 1: KDvergelijking op kerntaakniveau --- #
+# --- TAB 1: Kerntaakvergelijking --- #
 with tabs[0]:
     st.header("🔍 Globale vergelijking van twee kwalificatiedossiers (kerntaakniveau)")
     st.markdown("Vergelijkt teksten van volledige kerntaken (geen werkprocessen).")
 
     if oud_pdf and nieuw_pdf:
         st.write("Bestanden geüpload, vergelijking start...")
+
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp1, \
                  tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp2:
@@ -45,7 +46,8 @@ with tabs[0]:
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
         except Exception:
-            st.error("Er is iets misgegaan bij het vergelijken. Controleer de bestanden.")
+            st.error("Er is iets misgegaan bij de kerntaakanalyse.")
+            st.code(traceback.format_exc(), language="python")
         finally:
             for path in [oud_path, nieuw_path]:
                 try:
@@ -53,13 +55,14 @@ with tabs[0]:
                 except Exception:
                     pass
 
-# --- TAB 2: Inhoudsanalyse op werkprocesniveau --- #
+# --- TAB 2: Werkprocesanalyse --- #
 with tabs[1]:
     st.header("🧠 Inhoudelijke vergelijking op werkprocesniveau")
     st.markdown("Vergelijkt werkprocessen inhoudelijk (semantisch, inclusief impactscore).")
 
     if oud_pdf and nieuw_pdf:
         st.write("Bestanden geüpload, werkproces-analyse start...")
+
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp1, \
                  tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp2:
@@ -84,7 +87,8 @@ with tabs[1]:
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
         except Exception:
-            st.error("Er is iets misgegaan bij de inhoudsanalyse. Controleer de bestanden.")
+            st.error("Er is iets misgegaan bij de inhoudsanalyse.")
+            st.code(traceback.format_exc(), language="python")
         finally:
             for path in [oud_path, nieuw_path]:
                 try:
