@@ -11,12 +11,11 @@ def extract_full_text(pdf_path: str) -> str:
         tekst = []
         for page in pdf.pages:
             page_text = page.extract_text() or ""
-            # Sla pagina over als het typische TOC-indicatoren bevat
+            # Sla inhoudsopgave-achtige pagina's over
             if page_text.count("...") > 5 or re.search(r'\.{3,} *\d+', page_text):
                 continue
             tekst.append(page_text)
         return "\n".join(tekst)
-
 
 def bepaal_deel(code: str) -> str:
     if code.startswith("B"):
@@ -40,6 +39,7 @@ def extract_werkprocesblokken(text: str) -> List[Dict]:
         deel = bepaal_deel(code)
         blokken.append({
             "code": code,
+            "kerntaak": "-".join(code.split("-")[:2]),
             "naam": naam,
             "tekst": tekst,
             "deel": deel
@@ -87,6 +87,7 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
         if beste_match and hoogste_score > 0.6:
             impact, impactscore = bepaal_impactscore(hoogste_score)
             resultaten.append({
+                "Kerntaak": oud["kerntaak"],
                 "Deel": oud["deel"],
                 "Oude code": oud["code"],
                 "Nieuwe code": beste_match["code"],
@@ -100,6 +101,7 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
             gebruikte_nieuwe.add(beste_index)
         else:
             resultaten.append({
+                "Kerntaak": oud["kerntaak"],
                 "Deel": oud["deel"],
                 "Oude code": oud["code"],
                 "Nieuwe code": "",
@@ -111,10 +113,10 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
                 "Analyse": "Niet meer aanwezig in nieuwe dossier"
             })
 
-    # Toevoegingen in nieuw dossier detecteren
     for i, nieuw in enumerate(nieuw_blokken):
         if i not in gebruikte_nieuwe:
             resultaten.append({
+                "Kerntaak": nieuw["kerntaak"],
                 "Deel": nieuw["deel"],
                 "Oude code": "",
                 "Nieuwe code": nieuw["code"],
@@ -127,9 +129,29 @@ def vergelijk_werkprocessen(oud_pdf: str, nieuw_pdf: str) -> pd.DataFrame:
             })
 
     df = pd.DataFrame(resultaten)
-    return df[[
-        "Deel", "Oude code", "Nieuwe code", "Naam", 
-        "Oude tekst", "Nieuwe tekst", "Impact", 
-        "Impactscore", "Analyse"
-    ]]
- 
+
+    # Samenvatting per kerntaak
+    samenvatting = (
+        df.groupby(["Kerntaak", "Deel"])
+        .agg(
+            Totaal=("Naam", "count"),
+            Gewijzigd=("Impact", lambda x: (x == "Gewijzigd").sum()),
+            Toegevoegd=("Impact", lambda x: (x == "Toegevoegd").sum()),
+            Verwijderd=("Impact", lambda x: (x == "Verwijderd").sum()),
+            Gem_Impactscore=("Impactscore", lambda x: x.map({
+                "Geen impact": 0,
+                "Weinig impact": 1,
+                "Impact": 2,
+                "Hoge impact": 3
+            }).mean().round(2))
+        )
+        .reset_index()
+    )
+
+    # Schrijf naar Excel met 2 tabbladen
+    excel_path = "/tmp/vergelijking_resultaat.xlsx"
+    with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Werkprocessen")
+        samenvatting.to_excel(writer, index=False, sheet_name="Samenvatting")
+
+    return df
