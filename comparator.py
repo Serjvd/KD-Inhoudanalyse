@@ -1,7 +1,6 @@
 import pandas as pd
 import os
 import tempfile
-from comparator import DossierComparator  # of gewoon import als het in hetzelfde bestand staat
 from extractie import extracteer_data  # dit moet de parser zijn die jouw PDF omzet naar de juiste dicts
 
 def vergelijk_kds(oud_pdf_path: str, nieuw_pdf_path: str):
