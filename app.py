@@ -34,12 +34,9 @@ with tabs[0]:
                 tmp2.write(nieuw_pdf.read())
                 nieuw_path = tmp2.name
 
-            result_df = vergelijk_kds(oud_path, nieuw_path)
+            result_df, excel_path = vergelijk_kds(oud_path, nieuw_path)
             st.success("✅ Vergelijking voltooid")
             st.dataframe(result_df)
-
-            excel_path = os.path.join(tempfile.gettempdir(), "kd_kerntaak_vergelijking.xlsx")
-            result_df.to_excel(excel_path, index=False)
 
             with open(excel_path, "rb") as f:
                 st.download_button(
