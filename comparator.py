@@ -1,3 +1,27 @@
+import pandas as pd
+import os
+import tempfile
+from comparator_kern import DossierComparator  # of gewoon import als het in hetzelfde bestand staat
+from extractie import extracteer_data  # dit moet de parser zijn die jouw PDF omzet naar de juiste dicts
+
+def vergelijk_kds(oud_pdf_path: str, nieuw_pdf_path: str):
+    # Extract data
+    oud_data = extracteer_data(oud_pdf_path)
+    nieuw_data = extracteer_data(nieuw_pdf_path)
+
+    # Vergelijk met DossierComparator
+    comparator = DossierComparator(oud_data, nieuw_data)
+    resultaten = comparator.compare_all()
+
+    # Zet om naar DataFrame
+    df = pd.DataFrame(resultaten)
+
+    # Schrijf naar Excel
+    excel_path = os.path.join(tempfile.gettempdir(), "kd_kerntaak_vergelijking.xlsx")
+    df.to_excel(excel_path, index=False)
+
+    return df, excel_path
+
 """
 Module voor het vergelijken van twee kwalificatiedossiers met verbeterde werkprocesherkenning en deduplicatie.
 """
