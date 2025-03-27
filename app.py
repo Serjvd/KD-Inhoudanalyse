@@ -38,10 +38,12 @@ with tabs[0]:
     if oud_pdf and nieuw_pdf:
         st.write("Bestanden geüpload, vergelijking start...")
         try:
+            oud_pdf.seek(0)
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp1:
                 tmp1.write(oud_pdf.read())
                 oud_path = tmp1.name
 
+            nieuw_pdf.seek(0)
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp2:
                 tmp2.write(nieuw_pdf.read())
                 nieuw_path = tmp2.name
@@ -71,10 +73,12 @@ with tabs[1]:
     if oud_pdf and nieuw_pdf:
         st.write("Bestanden geüpload, werkproces-analyse start...")
         try:
+            oud_pdf.seek(0)
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp1:
                 tmp1.write(oud_pdf.read())
                 oud_path = tmp1.name
 
+            nieuw_pdf.seek(0)
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp2:
                 tmp2.write(nieuw_pdf.read())
                 nieuw_path = tmp2.name
