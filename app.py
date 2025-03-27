@@ -28,7 +28,6 @@ with tabs[0]:
         st.write("Bestanden geüpload, vergelijking start...")
 
         try:
-            # Veilige tijdelijke opslag
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", mode="wb") as tmp1:
                 tmp1.write(oud_pdf.read())
                 tmp1.flush()
@@ -72,7 +71,6 @@ with tabs[1]:
         st.write("Bestanden geüpload, werkproces-analyse start...")
 
         try:
-            # Veilige tijdelijke opslag
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", mode="wb") as tmp1:
                 tmp1.write(oud_pdf.read())
                 tmp1.flush()
@@ -99,4 +97,17 @@ with tabs[1]:
                     label="📥 Download Excelrapport (2 tabbladen)",
                     data=f,
                     file_name="vergelijking_resultaat.xlsx",
-                    mime
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+        except Exception:
+            st.error("Er is iets misgegaan bij de inhoudsanalyse.")
+            st.code(traceback.format_exc(), language="python")
+        finally:
+            for path in ["oud_path", "nieuw_path"]:
+                try:
+                    if path in locals():
+                        os.unlink(locals()[path])
+                except Exception:
+                    pass
+    else:
+        st.info("📂 Upload eerst beide PDF-bestanden hierboven om de analyse te starten.")
