@@ -8,7 +8,15 @@ model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
 
 def extract_full_text(pdf_path: str) -> str:
     with pdfplumber.open(pdf_path) as pdf:
-        return "\n".join([page.extract_text() or "" for page in pdf.pages])
+        tekst = []
+        for page in pdf.pages:
+            page_text = page.extract_text() or ""
+            # Sla pagina over als het typische TOC-indicatoren bevat
+            if page_text.count("...") > 5 or re.search(r'\.{3,} *\d+', page_text):
+                continue
+            tekst.append(page_text)
+        return "\n".join(tekst)
+
 
 def bepaal_deel(code: str) -> str:
     if code.startswith("B"):
